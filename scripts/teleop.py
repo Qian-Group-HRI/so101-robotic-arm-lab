@@ -2,7 +2,7 @@
 Teleoperation — SO-101 Arm Lab
 ================================
 
-Leader arm controls follower arm. Move the leader, follower mirrors.
+Leader arm controls follower arm in real-time.
 
 Usage:
     python scripts/teleop.py --leader /dev/ttyACM0 --follower /dev/ttyACM1

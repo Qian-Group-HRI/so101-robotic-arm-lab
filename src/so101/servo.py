@@ -819,6 +819,130 @@ class ServoController:
             )
         self.smooth_move(presets[position_name], duration=duration)
 
+    # ── Factory Reset ────────────────────────────────────────────────
+    #
+    # LeRobot's calibration writes values into servo EEPROM:
+    #   - Homing offsets (address 33)
+    #   - Min/max position limits (addresses 21, 23)
+    #   - Max torque (address 46)
+    #   - Goal position (address 42)
+    #
+    # If these are corrupted or left over from a previous calibration,
+    # our code sends "go to position 2048" but the servo interprets it
+    # completely differently because of the stored offset.
+    #
+    # factory_reset() clears ALL of this back to clean defaults.
+    # Run this once before using our custom code.
+    #
+
+    def factory_reset(self) -> None:
+        """
+        Reset ALL servo EEPROM values to factory defaults.
+
+        Clears homing offsets, position limits, goal positions,
+        and restores max torque. This undoes any calibration
+        written by LeRobot or other frameworks.
+
+        After this, servos respond exactly to raw position values
+        with no offsets or limits interfering.
+        """
+        self._check_connected()
+        print("Factory resetting all servos...")
+
+        for sid in range(1, 7):
+            name = ID_TO_JOINT[sid]
+
+            # Disable torque and unlock
+            self._packet_handler.write1ByteTxRx(
+                self._port_handler, sid, ADDR_TORQUE_ENABLE, 0
+            )
+            time.sleep(0.1)
+            self._packet_handler.write1ByteTxRx(
+                self._port_handler, sid, ADDR_LOCK, 0
+            )
+            time.sleep(0.1)
+
+            # Clear homing offset
+            self._packet_handler.write2ByteTxRx(
+                self._port_handler, sid, ADDR_MAX_ACCELERATION, 0
+            )
+            time.sleep(0.1)
+
+            # Reset position limits to full range
+            self._packet_handler.write2ByteTxRx(
+                self._port_handler, sid, ADDR_MIN_POSITION, 0
+            )
+            time.sleep(0.1)
+            self._packet_handler.write2ByteTxRx(
+                self._port_handler, sid, ADDR_MAX_POSITION, 4095
+            )
+            time.sleep(0.1)
+
+            # Restore max torque to 100%
+            self._packet_handler.write2ByteTxRx(
+                self._port_handler, sid, ADDR_MAX_TORQUE, 1000
+            )
+            time.sleep(0.1)
+
+            # Set goal = current position (SAFETY)
+            pos, _, _ = self._packet_handler.read2ByteTxRx(
+                self._port_handler, sid, ADDR_PRESENT_POSITION
+            )
+            time.sleep(0.1)
+            self._packet_handler.write2ByteTxRx(
+                self._port_handler, sid, ADDR_GOAL_POSITION, pos
+            )
+            time.sleep(0.1)
+
+            print(f"  {name} (ID {sid}): reset — offset=0, min=0, max=4095, torque=1000, goal={pos}")
+
+        print("Factory reset complete. All servos clean.")
+
+    def verify_servos(self) -> bool:
+        """
+        Check if servo EEPROM values are clean.
+
+        Returns True if all servos have proper defaults.
+        Returns False and prints what's wrong if not.
+        """
+        self._check_connected()
+        all_ok = True
+
+        for sid in range(1, 7):
+            name = ID_TO_JOINT[sid]
+            issues = []
+
+            minp, _, _ = self._packet_handler.read2ByteTxRx(
+                self._port_handler, sid, ADDR_MIN_POSITION
+            )
+            time.sleep(0.1)
+            maxp, _, _ = self._packet_handler.read2ByteTxRx(
+                self._port_handler, sid, ADDR_MAX_POSITION
+            )
+            time.sleep(0.1)
+            mt, _, _ = self._packet_handler.read2ByteTxRx(
+                self._port_handler, sid, ADDR_MAX_TORQUE
+            )
+            time.sleep(0.1)
+
+            if minp != 0:
+                issues.append(f"min={minp} (should be 0)")
+            if maxp != 4095:
+                issues.append(f"max={maxp} (should be 4095)")
+            if mt == 0:
+                issues.append(f"max_torque=0 (servo won't move!)")
+
+            if issues:
+                print(f"  WARNING {name}: {', '.join(issues)}")
+                all_ok = False
+
+        if all_ok:
+            print("  All servos OK")
+        else:
+            print("  Run factory_reset() to fix")
+
+        return all_ok
+
     # ── Internal Helpers ─────────────────────────────────────────────
 
     def _resolve_id(self, joint: str | int) -> int:

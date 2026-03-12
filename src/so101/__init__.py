@@ -8,7 +8,7 @@ built layer by layer for learning and experimentation.
 Layers:
     1. servo.py    — Direct servo communication
     2. arm.py      — Calibration, safety & auto-detection
-    3. teleop.py   — Teleoperation (coming soon)
+    3. teleop.py   — Teleoperation
     4. recorder.py — Record & playback (coming soon)
 """
 
@@ -23,6 +23,7 @@ from .arm import (
     auto_connect,
     auto_connect_pair,
 )
+from .teleop import Teleop
 
 __all__ = [
     "ServoController",
@@ -36,4 +37,5 @@ __all__ = [
     "get_port",
     "auto_connect",
     "auto_connect_pair",
+    "Teleop",
 ]

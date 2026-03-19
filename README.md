@@ -45,6 +45,7 @@
 | 🆕 | [What's New in SO-101](#whats-new) | SO-100 → SO-101 upgrades |
 | 📐 | [Specifications](#specifications-key-differences) | Motor, power, and sensor specs |
 | 🔧 | [Complete Setup](#complete-setup) | Hardware assembly & software install |
+| 🥝 | [KIWI Control Center](#kiwi-control-center) | Web dashboard for real-time arm control |
 | 🧠 | [Imitation Learning](#imitation-learning) | Data collection → Training → Deployment |
 | 🗺️ | [Roadmap](#roadmap) | What's coming next |
 | 🤝 | [Contributing](#contributing) | How to get involved |
@@ -80,6 +81,7 @@ This documentation walks through that entire process — assembly, calibration, 
 | 🤖 | **Deep LeRobot integration** | Designed to plug directly into the LeRobot framework for data collection, imitation learning, and deployment. |
 | 📚 | **Rich learning resources** | Comes with detailed assembly and calibration guides, plus tutorials for testing, data collection, training, and deployment. |
 | 🧠 | **NVIDIA Jetson compatible** | Supports deployment with reComputer Jetson platforms (e.g., Orin NX 16 GB), enabling on-board inference and real-time control. |
+| 🥝 | **KIWI Control Center** | Web-based dashboard (Flask + SocketIO) for real-time arm control, gesture execution, and system monitoring. |
 | 🏭 | **Multi-scene applications** | Applicable to education, research, and light industrial / automation tasks across diverse scenarios. |
 
 <br>
@@ -187,6 +189,55 @@ The SO-ARM101 is a meaningful step up from the SO-ARM100 across reliability, con
     <img src="assets/images/cameras.png" alt="Camera Setup" width="30%" style="border-radius:12px; margin:0 8px;">
   </a>
 </p>
+
+<br>
+
+---
+
+<br>
+
+<h1 align="center">🥝 KIWI Control Center</h1>
+
+<p align="center">
+  <em>Keep It Witty & Interactive — a web-based dashboard for real-time dual-arm control, gesture execution, and system monitoring.</em>
+</p>
+
+<br>
+
+<p align="center">
+  <a href="dashboard/">
+    <img src="assets/images/kiwi_dashboard.png" alt="KIWI Control Center Dashboard" width="80%" style="border-radius:12px;">
+  </a>
+</p>
+
+<br>
+
+The **KIWI Control Center** is a Flask + SocketIO web dashboard that provides a browser-based interface for controlling both SO-101 arms in real time. It runs on both Windows and Jetson, and supports dual-arm management from a single screen.
+
+**Key capabilities:**
+
+| | Feature | Description |
+|---|---------|-------------|
+| 🤖 | **Dual-arm status** | Real-time position, temperature, and load readouts for all 12 servos across both leader and follower arms |
+| 👋 | **Gesture library** | One-click execution of pre-built gestures (wave, nod, bow, high-five, thumbs up) with automatic return to resting position |
+| 🌡️ | **Temperature monitoring** | Live temperature chart tracking servo heat across both arms over time |
+| 🔒 | **Port-safe architecture** | Thread-safe serial communication using `threading.Lock()` — no port conflicts between status polling and gesture commands |
+| 🔴 | **Emergency stop** | Instant torque kill across all servos from the browser |
+| 🔍 | **Auto port detection** | Automatically finds connected arms on startup — works with COM ports (Windows) and `/dev/ttyACM*` (Jetson/Linux) |
+
+**Quick start:**
+
+```bash
+cd dashboard
+pip install flask flask-socketio scservo-sdk pyserial
+python app.py --leader COM5 --follower COM6   # Windows
+python app.py --leader /dev/ttyACM0 --follower /dev/ttyACM1  # Jetson/Linux
+python app.py --simulate   # Demo mode without hardware
+```
+
+Then open **http://localhost:5000** in your browser.
+
+> 📖 **Dashboard source →** [dashboard/](dashboard/)
 
 <br>
 
@@ -400,7 +451,7 @@ For fully on-board inference (no laptop required), the Jetson Orin Nano Super is
 
 We are actively extending this platform. Here's what's on the horizon:
 
-- [ ] **KIWI Control Center** — Web-based dashboard (Flask + SocketIO) for real-time arm control, gesture execution, and system monitoring
+- [x] **KIWI Control Center** — Web-based dashboard for real-time arm control, gesture execution, and system monitoring ✅
 - [ ] **LeKiWi mobile base integration** — Mount the SO-101 on a mobile base for autonomous navigation + manipulation
 - [ ] **Multi-arm coordination** — Synchronized dual-arm tasks (e.g., bi-manual pick-and-place, choreographed demos)
 - [ ] **Face & emotion recognition** — Vision pipeline for personalized human–robot interaction

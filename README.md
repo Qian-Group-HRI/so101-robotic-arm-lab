@@ -27,6 +27,9 @@
   </a>&nbsp;
   <a href="https://github.com/huggingface/lerobot">
     <img src="https://img.shields.io/badge/framework-LeRobot-FFD21E?style=for-the-badge&labelColor=2B2640" alt="LeRobot">
+  </a>&nbsp;
+  <a href="https://huggingface.co/datasets/G3nadh/so101_pick_place">
+    <img src="https://img.shields.io/badge/dataset-HuggingFace-FF6F00?style=for-the-badge&labelColor=2B2640" alt="Dataset">
   </a>
 </p>
 
@@ -45,7 +48,7 @@
 | 🆕 | [What's New in SO-101](#whats-new) | SO-100 → SO-101 upgrades |
 | 📐 | [Specifications](#specifications-key-differences) | Motor, power, and sensor specs |
 | 🔧 | [Complete Setup](#complete-setup) | Hardware assembly & software install |
-| 🥝 | [KIWI Control Center](#kiwi-control-center) | Web dashboard for real-time arm control |
+| 🥝 | [KIWI Control Center](#kiwi-control-center) | Web dashboard for arm control + dataset recording |
 | 🧠 | [Imitation Learning](#imitation-learning) | Data collection → Training → Deployment |
 | 🗺️ | [Roadmap](#roadmap) | What's coming next |
 | 🤝 | [Contributing](#contributing) | How to get involved |
@@ -63,7 +66,7 @@ The **SO-10xARM** is a fully open-source robotic arm platform from [TheRobotStud
 
 On the software side, **[LeRobot](https://github.com/huggingface/lerobot)** is a PyTorch-based robotics framework focused on real-world control via **imitation learning**: it bundles models, curated datasets of human demonstrations, and simulation environments so users can start training and deploying policies without reinventing the full stack. The goal is simple but ambitious — drastically lower the barrier to real-world robotics by sharing reusable datasets and pretrained models, and progressively adding support for affordable, capable robot platforms like the SO-10xARM 🧠🛠️.
 
-In our setup, the **SO-ARM10x** is integrated with a **reComputer Jetson AI kit** (Jetson Orin / AGX Orin), giving us a compact system that combines precise robotic arm control with serious on-board AI compute power. Together with LeRobot, this forms a complete development pipeline suitable for education, research, and light industrial automation: from building the arm and wiring the hardware, to configuring the environment, collecting demonstrations with the leader–follower setup, and training imitation learning policies that run directly on the Jetson platform 🎓🧪.
+In our setup, the **SO-ARM10x** is integrated with a **reComputer Jetson AI kit** (Jetson Orin Nano Super), giving us a compact system that combines precise robotic arm control with serious on-board AI compute power. Together with LeRobot, this forms a complete development pipeline suitable for education, research, and light industrial automation: from building the arm and wiring the hardware, to configuring the environment, collecting demonstrations with the leader–follower setup, and training imitation learning policies that run directly on the Jetson platform 🎓🧪.
 
 This documentation walks through that entire process — assembly, calibration, debugging, data collection, and model training — so that others in the lab (and beyond) can reproduce and extend our real-world LeRobot experiments on the SO-ARM10x.
 
@@ -80,8 +83,10 @@ This documentation walks through that entire process — assembly, calibration, 
 | 🧩 | **Open-source & affordable** | Fully open-source, low-cost robotic arm solution from TheRobotStudio, suitable for students, labs, and hobbyists. |
 | 🤖 | **Deep LeRobot integration** | Designed to plug directly into the LeRobot framework for data collection, imitation learning, and deployment. |
 | 📚 | **Rich learning resources** | Comes with detailed assembly and calibration guides, plus tutorials for testing, data collection, training, and deployment. |
-| 🧠 | **NVIDIA Jetson compatible** | Supports deployment with reComputer Jetson platforms (e.g., Orin NX 16 GB), enabling on-board inference and real-time control. |
-| 🥝 | **KIWI Control Center** | Web-based dashboard (Flask + SocketIO) for real-time arm control, gesture execution, and system monitoring. |
+| 🧠 | **NVIDIA Jetson compatible** | Supports deployment with Jetson Orin Nano Super, enabling on-board inference and real-time control. |
+| 🥝 | **KIWI Control Center** | Web-based dashboard with two tabs — **Dashboard** for real-time arm control & gestures, and **Recorder** for interactive dataset collection with camera preview, episode save/discard, and auto-push to HuggingFace. |
+| 📷 | **Dual camera support** | Auto-detects connected cameras (Arducam gripper + overhead RealSense) with live MJPEG streaming and snapshot capture. |
+| 📦 | **Dataset on HuggingFace** | Published pick-and-place dataset at [`G3nadh/so101_pick_place`](https://huggingface.co/datasets/G3nadh/so101_pick_place) — 50 episodes with dual-camera frames + servo positions at 30fps. |
 | 🏭 | **Multi-scene applications** | Applicable to education, research, and light industrial / automation tasks across diverse scenarios. |
 
 <br>
@@ -199,45 +204,73 @@ The SO-ARM101 is a meaningful step up from the SO-ARM100 across reliability, con
 <h1 align="center">🥝 KIWI Control Center</h1>
 
 <p align="center">
-  <em>Keep It Witty & Interactive — a web-based dashboard for real-time dual-arm control, gesture execution, and system monitoring.</em>
+  <em>Keep It Witty & Interactive — a unified web dashboard for real-time arm control, gesture execution, and interactive dataset recording.</em>
 </p>
 
 <br>
 
 <p align="center">
-  <a href="dashboard/">
+  <a href="kiwi_control_center.py">
     <img src="assets/images/kiwi_dashboard.png" alt="KIWI Control Center Dashboard" width="80%" style="border-radius:12px;">
   </a>
 </p>
 
 <br>
 
-The **KIWI Control Center** is a Flask + SocketIO web dashboard that provides a browser-based interface for controlling both SO-101 arms in real time. It runs on both Windows and Jetson, and supports dual-arm management from a single screen.
+The **KIWI Control Center** is a Flask + SocketIO web application that provides a browser-based interface for controlling both SO-101 arms and recording imitation-learning datasets — all from a single URL. It runs on both Windows and Jetson, with two tabs:
 
-**Key capabilities:**
+<br>
+
+### 🎛️ Dashboard Tab
+
+Real-time arm control and monitoring.
 
 | | Feature | Description |
 |---|---------|-------------|
-| 🤖 | **Dual-arm status** | Real-time position, temperature, and load readouts for all 12 servos across both leader and follower arms |
-| 👋 | **Gesture library** | One-click execution of pre-built gestures (wave, nod, bow, high-five, thumbs up) with automatic return to resting position |
-| 🌡️ | **Temperature monitoring** | Live temperature chart tracking servo heat across both arms over time |
-| 🔒 | **Port-safe architecture** | Thread-safe serial communication using `threading.Lock()` — no port conflicts between status polling and gesture commands |
-| 🔴 | **Emergency stop** | Instant torque kill across all servos from the browser |
-| 🔍 | **Auto port detection** | Automatically finds connected arms on startup — works with COM ports (Windows) and `/dev/ttyACM*` (Jetson/Linux) |
+| 📷 | **Live camera feeds** | Auto-detects all connected USB cameras with smooth MJPEG streaming and snapshot capture |
+| 🤖 | **Dual-arm status** | Real-time position, temperature readouts for all 12 servos across both arms |
+| 👋 | **Gesture library** | One-click gestures (wave, nod, shake, thumbs up, point, dance) with color-coded tiles — each returns to resting position automatically |
+| 🕹️ | **Teleoperation** | Start/stop LeRobot-based teleop from the browser with live FPS and drop count |
+| 🔒 | **Port-safe architecture** | Thread-safe serial communication with `threading.Lock()` — no conflicts between polling and commands |
+| 🔴 | **Emergency stop** | Instant torque kill across all servos |
+| 🔍 | **Auto port detection** | Finds connected arms automatically on both Windows (`COM*`) and Linux (`/dev/ttyACM*`) |
 
-**Quick start:**
+<br>
+
+### 🎬 Recorder Tab
+
+Interactive dataset collection with preview and HuggingFace integration.
+
+| | Feature | Description |
+|---|---------|-------------|
+| ▶️ | **Start/Stop recording** | Click or press Enter to start/stop an episode — no fixed timer |
+| 👁️ | **Preview playback** | After stopping, camera feeds switch to PREVIEW mode replaying your recorded episode so you can review before saving |
+| ✅ | **Save / Discard** | Press `y` to save, `n` to discard — bad episodes never pollute your dataset |
+| 📤 | **Auto-push to HuggingFace** | Toggle on to automatically push each saved episode to your HF repo in the background |
+| 🔢 | **Target +/- controls** | Adjust episode target (−10, −1, +1, +10) — progress bar fills as you go |
+| 🔀 | **Camera swap** | Swap Gripper/Overhead labels if cameras are detected in wrong order |
+| ⌨️ | **Keyboard shortcuts** | Enter = start/stop, y = save, n = discard |
+
+**Each saved episode contains:**
+- Camera frames (JPEG) from all detected cameras at 30fps
+- Servo positions for all 6 joints at 30fps
+- Timestamped `servo_data.json` with task metadata
+
+<br>
+
+### Quick Start
 
 ```bash
-cd dashboard
-pip install flask flask-socketio scservo-sdk pyserial
-python app.py --leader COM5 --follower COM6   # Windows
-python app.py --leader /dev/ttyACM0 --follower /dev/ttyACM1  # Jetson/Linux
-python app.py --simulate   # Demo mode without hardware
+# On Jetson
+cd ~/so101-robotic-arm-lab
+pip install flask flask-socketio pyserial
+
+python kiwi_control_center.py
 ```
 
-Then open **http://localhost:5000** in your browser.
+Open **http://localhost:5000** in your browser. Click the **Recorder** tab to collect datasets.
 
-> 📖 **Dashboard source →** [dashboard/](dashboard/)
+**Published dataset:** [`G3nadh/so101_pick_place`](https://huggingface.co/datasets/G3nadh/so101_pick_place) — 50 episodes of pick-and-place with dual cameras.
 
 <br>
 
@@ -278,32 +311,45 @@ The imitation learning workflow has three stages, each covered in detail below.
 
 <br>
 
-High-quality demonstrations are the foundation of every successful policy. During data collection, a human operator physically moves the **leader arm** to perform a task while the **follower arm** mirrors the motion in real time. LeRobot simultaneously records:
+High-quality demonstrations are the foundation of every successful policy. We provide **two methods** for data collection:
 
-- **Joint positions** from all 6 servos on both arms (state + action pairs)
-- **Camera frames** from one or more USB cameras observing the workspace
-- **Timestamps** for precise temporal alignment
+**Method 1 — KIWI Recorder (recommended for interactive control):**
+
+Use the Recorder tab in the KIWI Control Center for a fully interactive workflow with live camera preview, episode-by-episode save/discard, and auto-push to HuggingFace.
+
+```bash
+python kiwi_control_center.py
+# Open http://localhost:5000 → click Recorder tab
+```
+
+**Method 2 — LeRobot CLI (recommended for LeRobot-native format):**
+
+Use LeRobot's built-in recording command for datasets that are directly compatible with ACT/Diffusion Policy training.
+
+```bash
+lerobot-record \
+  --robot.type=so101_follower \
+  --robot.port=/dev/ttyACM1 \
+  --robot.id=follower_arm \
+  --teleop.type=so101_leader \
+  --teleop.port=/dev/ttyACM0 \
+  --teleop.id=leader_arm \
+  --robot.cameras='{"gripper": {"type": "opencv", "index_or_path": 0, "width": 640, "height": 480, "fps": 30}, "overhead": {"type": "opencv", "index_or_path": 4, "width": 640, "height": 480, "fps": 30}}' \
+  --dataset.repo_id=G3nadh/so101_pick_place \
+  --dataset.single_task="Pick object and place in box" \
+  --dataset.num_episodes=50 \
+  --dataset.episode_time_s=20 \
+  --dataset.reset_time_s=5 \
+  --dataset.push_to_hub=true \
+  --display_data=true
+```
 
 **Best practices for collecting demonstrations:**
 
 - **Consistency matters.** Keep object placement, lighting, and camera angles as stable as possible across episodes. Small, deliberate variations help generalization — random chaos does not.
 - **Aim for 50–100 episodes** per task as a starting point. Simple pick-and-place tasks can work with fewer; complex multi-step tasks may need more.
 - **Slow, deliberate motions** produce cleaner data than fast, jerky ones. The policy learns from what it sees — noisy demonstrations yield noisy behavior.
-- **Review your data** after collection. LeRobot's `visualize_dataset` utility lets you scrub through episodes and catch bad recordings before they pollute training.
-
-```bash
-# Example: record 50 episodes for a pick-and-place task
-python lerobot/scripts/control_robot.py \
-  --robot.type=so101 \
-  --control.type=record \
-  --control.fps=30 \
-  --control.single_task="Pick up the block and place it in the bin" \
-  --control.repo_id=YOUR_HF_USERNAME/so101_pick_place \
-  --control.num_episodes=50 \
-  --control.push_to_hub=1
-```
-
-Each episode is stored as a self-contained record (joint arrays + image frames + metadata) and can optionally be pushed to the HuggingFace Hub for versioning and sharing.
+- **Review your data** after collection. Use the KIWI Recorder's preview playback to review each episode before saving.
 
 > 📖 **Full walkthrough →** [docs/data_collection.md](docs/data_collection.md)
 
@@ -327,36 +373,26 @@ Once demonstrations are collected, the next step is to train a policy that can r
 
 **Training overview:**
 
-1. **Choose an architecture.** ACT is a great default — fast to train, easy to tune. Switch to Diffusion Policy if your task has multiple valid strategies (e.g., the robot could approach an object from either side).
-2. **Configure your run.** LeRobot uses Hydra-based YAML configs for full control over hyperparameters, dataset splits, and training schedules.
-3. **Launch training.** A single command kicks off the full pipeline — data loading, model initialization, optimization, checkpointing, and WandB / TensorBoard logging.
-4. **Monitor convergence.** Watch the training and validation loss curves. For ACT, you should see action-prediction loss drop steadily within the first few thousand steps.
+1. **Choose an architecture.** ACT is a great default — fast to train, easy to tune. Switch to Diffusion Policy if your task has multiple valid strategies.
+2. **Configure your run.** LeRobot uses Hydra-based YAML configs for full control over hyperparameters.
+3. **Launch training.** A single command kicks off the full pipeline.
+4. **Monitor convergence.** Watch the training and validation loss curves.
 
 ```bash
-# Example: train an ACT policy on collected demonstrations
 python lerobot/scripts/train.py \
   --policy.type=act \
-  --dataset.repo_id=YOUR_HF_USERNAME/so101_pick_place \
+  --dataset.repo_id=G3nadh/so101_pick_place \
   --dataset.episodes=[0:50] \
   --training.num_epochs=2000 \
   --training.batch_size=8 \
-  --eval.use_async_eval=true \
   --output_dir=outputs/act_pick_place \
   --wandb.enable=true
 ```
 
-**Hardware notes:**
-
 | Platform | Training Experience |
 |---|---|
 | **Cloud / desktop GPU** (RTX 3090, A100, etc.) | Recommended for full training runs. ACT trains in ~2–4 hours on 50 episodes. |
-| **Jetson Orin Nano Super** | Viable for small-scale fine-tuning and experimentation. Full training is slower but absolutely doable for sub-200M-param models. |
-
-**Tips for better policies:**
-
-- **Start small.** Train on 20 episodes first. If the policy learns the rough motion, scale up data. If it doesn't, fix your data before collecting more.
-- **Use image augmentation.** LeRobot supports random crops, color jitter, and more. This significantly improves generalization to lighting and camera shifts.
-- **Save checkpoints frequently.** Sometimes an earlier checkpoint outperforms the final one — especially if you overtrain on a small dataset.
+| **Jetson Orin Nano Super** | Viable for small-scale fine-tuning and experimentation. Full training is slower but doable for sub-200M-param models. |
 
 > 📖 **Full walkthrough →** [docs/training.md](docs/training.md)
 
@@ -376,16 +412,9 @@ python lerobot/scripts/train.py \
 
 <br>
 
-The final stage closes the loop: load the trained policy, run inference in real time, and watch the arm execute the task autonomously. This is where all the work pays off — and where you'll iterate fastest.
-
-**Deployment workflow:**
-
-1. **Load a checkpoint.** Point the deployment script at your best checkpoint (from training or downloaded from the Hub).
-2. **Run the policy.** The script reads live camera frames and current joint positions, feeds them through the policy network, and sends predicted actions to the follower arm's servos.
-3. **Evaluate and iterate.** Run 10+ evaluation episodes. Track success rate, watch for failure modes, and decide whether you need more data, different augmentation, or longer training.
+The final stage closes the loop: load the trained policy, run inference in real time, and watch the arm execute the task autonomously.
 
 ```bash
-# Example: deploy a trained ACT policy on the real arm
 python lerobot/scripts/control_robot.py \
   --robot.type=so101 \
   --control.type=record \
@@ -395,20 +424,12 @@ python lerobot/scripts/control_robot.py \
   --control.num_episodes=10
 ```
 
-**What to expect on your first deployment:**
-
-The policy will likely be *close but imperfect*. Common issues and fixes:
-
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
-| Arm reaches toward the object but misses | Camera angle shifted between data collection and deployment | Re-mount the camera or collect a few more demos with the current setup |
-| Gripper closes too early / too late | Inconsistent gripper timing in demonstrations | Re-record episodes with more deliberate gripper actions |
-| Jerky, stuttering motion | Low control frequency or policy inference too slow | Increase FPS, reduce image resolution, or use a lighter model |
-| Arm freezes or produces random actions | Wrong checkpoint or mismatched configuration | Verify the config YAML matches the training setup exactly |
-
-**Deploying on Jetson Orin Nano Super:**
-
-For fully on-board inference (no laptop required), the Jetson Orin Nano Super is the recommended platform. The 8 GB of shared GPU memory handles ACT and Diffusion Policy models comfortably for real-time control at 30 FPS with a single camera stream.
+| Arm reaches toward the object but misses | Camera angle shifted | Re-mount camera or collect more demos |
+| Gripper closes too early / too late | Inconsistent gripper timing in demos | Re-record with deliberate gripper actions |
+| Jerky, stuttering motion | Low control frequency | Increase FPS or reduce image resolution |
+| Arm freezes or random actions | Wrong checkpoint | Verify config matches training setup |
 
 > 📖 **Full walkthrough →** [docs/deployment.md](docs/deployment.md)
 
@@ -421,7 +442,7 @@ For fully on-board inference (no laptop required), the Jetson Orin Nano Super is
 <h2 align="center">The Full Loop</h2>
 
 <p align="center">
-  <em>The imitation learning cycle is inherently iterative — each deployment reveals what the policy still needs to learn, which informs the next round of data collection.</em>
+  <em>The imitation learning cycle is inherently iterative — each deployment reveals what the policy still needs to learn.</em>
 </p>
 
 <br>
@@ -452,10 +473,15 @@ For fully on-board inference (no laptop required), the Jetson Orin Nano Super is
 We are actively extending this platform. Here's what's on the horizon:
 
 - [x] **KIWI Control Center** — Web-based dashboard for real-time arm control, gesture execution, and system monitoring ✅
+- [x] **Interactive Dataset Recorder** — Browser-based recording with preview, save/discard, auto-push to HuggingFace ✅
+- [x] **Dual camera integration** — Auto-detect Arducam (gripper) + RealSense (overhead) with live MJPEG streaming ✅
+- [x] **First dataset published** — [`G3nadh/so101_pick_place`](https://huggingface.co/datasets/G3nadh/so101_pick_place) — 50 pick-and-place episodes ✅
+- [x] **Jetson Orin Nano deployment** — Full pipeline running on-device: cameras, teleop, dashboard, recording ✅
+- [ ] **ACT policy training** — Train first pick-and-place policy on collected dataset
+- [ ] **Diffusion Policy comparison** — Train and benchmark against ACT
 - [ ] **LeKiWi mobile base integration** — Mount the SO-101 on a mobile base for autonomous navigation + manipulation
 - [ ] **Multi-arm coordination** — Synchronized dual-arm tasks (e.g., bi-manual pick-and-place, choreographed demos)
 - [ ] **Face & emotion recognition** — Vision pipeline for personalized human–robot interaction
-- [ ] **On-board Jetson deployment guide** — End-to-end tutorial for running everything on the Jetson Orin Nano Super without a laptop
 - [ ] **Pre-trained policy zoo** — Ready-to-deploy checkpoints for common tasks (pick-place, stacking, sorting)
 
 <br>
@@ -497,6 +523,7 @@ This project builds on the work of many open-source communities and research gro
   <img src="https://img.shields.io/badge/Built_with-LeRobot-FFD21E?style=flat-square&logo=huggingface&logoColor=black" alt="LeRobot">&nbsp;
   <img src="https://img.shields.io/badge/Powered_by-Jetson_Orin-76B900?style=flat-square&logo=nvidia&logoColor=white" alt="Jetson">&nbsp;
   <img src="https://img.shields.io/badge/Hardware-SO--101_Arm-3D348B?style=flat-square" alt="SO-101">&nbsp;
+  <img src="https://img.shields.io/badge/Dataset-HuggingFace-FF6F00?style=flat-square&logo=huggingface&logoColor=white" alt="Dataset">&nbsp;
   <img src="https://img.shields.io/badge/Made_at-University_of_Houston-C8102E?style=flat-square" alt="UH">
 </p>
 
